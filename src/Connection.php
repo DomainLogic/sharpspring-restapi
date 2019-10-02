@@ -183,7 +183,7 @@ class Connection
      *   'empty' values (which the REST API outputs but does not accept) may be
      *   fixed.
      */
-    public function toArray($object_type, $object, $reverse = FALSE)
+    public function toArray($object_type, $object, $reverse = false)
     {
         // Regression since v1.0: don't accept objects without toArray() method.
         // (Noone cares.)
@@ -216,6 +216,7 @@ class Connection
         // - $_nullableProperties does not get overridden in custom classes so
         //   the base class' getSchemaInfo() will return the right data;
         // - no duplicate properties are mapped to the same field system name.
+        /** @var \SharpSpring\RestApi\ValueObject $class */
         $class = '\\SharpSpring\\RestApi\\' . ucfirst($object_type);
         if (is_callable([$class, 'getSchemaInfo'])) {
             $nullable_properties = $class::getSchemaInfo('nullable');
@@ -308,7 +309,7 @@ class Connection
      *   external code because the API call already validates the structure
      *   of 'error' results.
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      *   If the result contains an object-level error; the error for one of the
      *   objects only. Only possible for $validate_individual_objects = true.
      * @throws \UnexpectedValueException
@@ -416,7 +417,7 @@ class Connection
      *   Structure corresponding to the JSON response returned by the API, which
      *   may be modified according to checks / parameters documented earlier.
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      *   If the REST API response indicates an error encountered while executing
      *   the method.
      * @throws \UnexpectedValueException
@@ -570,13 +571,15 @@ class Connection
      * @param array $object_result
      *   The result of the operation on a single object. (This should be an
      *   array containing at least 2 keys 'success' and 'error', which this
-     *   function will validate.)
+     *   function will validate. The function will accept non-arrays, since
+     *   its primary function is to check whatever is thrown at it - and will
+     *   throw an UnexpectedValueException for them.)
      *
      * @return true
      *   The value of the 'success' key. (We are not checking it but according
      *   to the API docs it should always be true.)
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      *   If the result indicates an object-level error.
      * @throws \UnexpectedValueException
      *   If the result has an unexpected format.
@@ -626,7 +629,7 @@ class Connection
      * @return array
      *   The substructure we expected in the JSON array.
      *
-     * @see $this->call() for throws.
+     * @see Connection::call() for throws.
      */
     protected function callLimited($method, $single_result_key, array $where, $limit = null, $offset = null, $extra_params = [])
     {
@@ -677,9 +680,6 @@ class Connection
      *   call(). This may only be set if $leads contains exactly one lead.
      *
      * @return mixed
-     *
-     * @throws \Exception
-     *   See callers.
      */
     protected function handleLeads(array $leads, $method, $throw_for_individual_object = false)
     {
@@ -689,7 +689,6 @@ class Connection
         $invalid_leads = [];
         $leads = array_values($leads);
         foreach ($leads as $index => $lead) {
-
             if (!is_array($lead) && !(is_object($lead) && $lead instanceof Lead)) {
                 $invalid_leads[$index] = ['success' => false, 'error' => [
                     'code' => 1, 'data' => $lead, 'message' => 'Invalid argument; not a lead.'
@@ -760,14 +759,12 @@ class Connection
                 // We have a wrapper around (the API result which contains) one
                 // or more object-level errors; merge the invalid leads into it.
                 $result = $e->getData();
-            } catch (\Exception $e) {
-                // Just re-throw. We are making a judgment call and disregarding
-                // any invalid leads (that would be in $invalid_leads); the most
-                // likely situation here is an exception from the actual REST
-                // client, which would be harder to debug if we wrapped it into
-                // another exception.
-                throw $e;
             }
+            // Note we don't catch other exceptions. We are making a judgment
+            // call and disregarding any invalid leads (that would be in
+            // $invalid_leads); the most likely situation here is an exception
+            // from the actual REST client, which would be harder to debug if
+            // we wrapped it into another exception.
         }
         if ($invalid_leads) {
             // We have invalid leads which we turned into faux object errors;
@@ -821,7 +818,7 @@ class Connection
      * @return array
      *    [ 'success': true, 'error': null, 'id': <ID OF THE CREATED LEAD> ]
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      *   If the REST API indicated that the lead failed to be created.
      *   isObjectLevel() tells whether it's an API-level or object-level error;
      *   for object-level errors, getCode() and getMessage() return the values
@@ -862,7 +859,7 @@ class Connection
      *   as many values as there are leads in the input argument, each being an
      *   array structured like [ 'success': true, 'error': null, 'id': <NEW ID>]
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      *   If the REST API indicated that at least one lead failed to be created.
      *   isObjectLevel() tells whether it's an API-level or object-level error;
      *   for object level errors, getCode() is 0 and getData() returns an array
@@ -936,11 +933,11 @@ class Connection
      *   extends its functionality, like createLead where it returns extra
      *     info.)
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      * @throws \UnexpectedValueException
      * @throws \RuntimeException
      *
-     * @see createLead()
+     * @see Connection::createLead()
      *
      * @todo implement some 'fix' option (in 2nd array-argument) to fix the 302?
      */
@@ -968,13 +965,13 @@ class Connection
      *   as many values as there are leads in the input argument, each being a
      *   fixed array value: [ 'success': true, 'error': null ]
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      * @throws \UnexpectedValueException
      * @throws \RuntimeException
      *   See createLeads().
      *
-     * @see createLeads()
-     * @see updateLead()
+     * @see Connection::createLeads()
+     * @see Connection::updateLead()
      */
     public function updateLeads(array $leads)
     {
@@ -997,11 +994,11 @@ class Connection
      *   much use at the moment but is kept like this in case the REST API
      *   extends its functionality, like createLead which returns extra info.)
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      * @throws \UnexpectedValueException
      * @throws \RuntimeException
      *
-     * @see createLead()
+     * @see Connection::createLead()
      */
     public function deleteLead($id)
     {
@@ -1029,11 +1026,11 @@ class Connection
      *   as many values as there are leads in the input argument, each being a
      *   fixed array value: [ 'success': true, 'error': null ]
      *
-     * @throws SharpSpringRestApiException
+     * @throws \SharpSpring\RestApi\SharpSpringRestApiException
      * @throws \UnexpectedValueException
      * @throws \RuntimeException
      *
-     * @see createLeads()
+     * @see Connection::createLeads()
      */
     public function deleteLeads(array $ids)
     {
@@ -1590,5 +1587,88 @@ class Connection
         // Result key documented as getAllUnsubscribeCategories is actually
         // getAllunsubscribeCategorys.
         return $this->call('getUnsubscribeCategories', [], ['single_result_key' => 'getAllunsubscribeCategorys']);
+    }
+
+    public function getLeadTimeline($where = [])
+    {
+        return $this->callLimited('getLeadTimeline', 'leadTimeline', $where);
+    }
+
+    /**
+     * Retrieves a single opportunity by its ID.
+     *
+     * @param int $id
+     *   The opportunity ID.
+     * @param array $options
+     *   (optional) Reserved for future use
+     *
+     * @return array
+     *   An opportunity table row (in array format as returned from the REST API; not as
+     *   an Opportunity object). Empty array if not found.
+     */
+    public function getOpportunity($id, $options = [])
+    {
+        $params = [];
+        $params['id'] = $id;
+        $opportunities = $this->call('getOpportunity', $params, ['single_result_key' => 'opportunity']);
+        /**
+         * @see Connection::getLead()
+         */
+        if (count($opportunities) > 1) {
+            throw new UnexpectedValueException("Sharpspring REST API failure: response result 'opportunity' value contains more than one object.'\nResponse: " . json_encode($opportunities), 16);
+        }
+        if ($opportunities) {
+            $opportunity = reset($opportunities);
+        } else {
+            // If not found *and* the 'custom fields' bug is not encountered, an
+            // empty array is returned. In this case we won't 'unwrap' it (to
+            // return null or false), but just return an empty array.
+            $opportunity = [];
+        }
+        return $opportunity;
+    }
+
+    /**
+     * Retrieves a list of Opportunity objects.
+     *
+     * @param array $where
+     *   A key-value array containing ONE item only, with key being one of 'id',
+     *  'ownerID','dealStageID','accountID','campaignID. The return
+     *  value will be one opportunity only if 'id' is specified.
+     * @param int $limit
+     *   (optional) A limit to the number of objects returned. A higher number
+     *   than 500 does not have effect; the number of objects returned will be
+     *   500 maximum. @todo confirm this is correct for opportunities
+     * @param int $offset
+     *   (optional) The index in the full list of objects, of the first object
+     *   to return. Zero-based. (To reiterate: this number is 'object based',
+     *   not 'batch/page based'.)
+     * @param array $options
+     *   (optional) Reserved for future use.
+     *
+     * @return array
+     *   An array of opportunity table rows (in array format as returned from the REST
+     *   API; not as Opportunity objects).
+     * @see Connection::getLead() for comment on 'null string values'.
+     */
+    public function getOpportunities($where = [], $limit = null, $offset = null, $options = [])
+    {
+        $opportunities = $this->callLimited('getOpportunities', 'opportunity', $where, $limit, $offset);
+
+        return $opportunities;
+    }
+
+    public function getOpportunityLeads($where = [])
+    {
+        return $this->callLimited('getOpportunityLeads', 'getWhereopportunityLeads', $where);
+    }
+
+    public function getOpportunityLeadsDateRange($start_date, $end_date = '', $time_type = 'update', $limit = null, $offset = null)
+    {
+        $params = [];
+        $params['startDate'] = $start_date;
+        $params['endDate'] = $end_date ? $end_date : date('Y-m-d H:i:s');
+        $params['timestamp'] = $time_type;
+        return $this->callLimited('getOpportunityLeadsDateRange', 'opportunityLead', [], $limit, $offset, $params);
     }
 }

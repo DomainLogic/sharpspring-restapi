@@ -1200,7 +1200,7 @@ class SharpSpringSyncJob extends DrunkinsJob
      * we now actually check Sharpspring instead of our local cache, and make
      * sure that our cache is updated too.
      *
-     * @param LeadWithSourceId $lead
+     * @param \SharpSpring\RestApi\examples\LeadWithSourceId $lead
      *   A lead object.
      * @param array $context
      *   The job context.
@@ -1533,7 +1533,7 @@ class SharpSpringSyncJob extends DrunkinsJob
 
         if (!isset($this->sharpSpringConnection)) {
             // @todo this might change; see @todo at $this->logger.
-            $this->logger = psr3_logger('sharpspring_sync', $this->isStartedFromUI() ? [] : ['dsm' => null]);
+            $this->logger = psr3_logger(['log_type' => 'sharpspring_sync']);
             $client = new CurlClient([
                 'account_id' => $this->settings['sharpspring_api_account_id'],
                 'secret_key' => $this->settings['sharpspring_api_secret_key']
@@ -1578,7 +1578,7 @@ class SharpSpringSyncJob extends DrunkinsJob
     /**
      * Returns a human readable 'unique enough' description for this lead.
      *
-     * @param LeadWithSourceId $lead
+     * @param \SharpSpring\RestApi\examples\LeadWithSourceId $lead
      *
      * @return string
      */
